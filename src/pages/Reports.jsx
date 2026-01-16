@@ -22,13 +22,35 @@ export default function Reports() {
         if (!element) return;
 
         try {
-            const canvas = await html2canvas(element, { scale: 2 });
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                logging: false
+            });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            const pageHeight = pdf.internal.pageSize.getHeight();
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            // Handle multi-page content
+            if (pdfHeight > pageHeight) {
+                let position = 0;
+                let remainingHeight = pdfHeight;
+
+                while (remainingHeight > 0) {
+                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                    remainingHeight -= pageHeight;
+                    if (remainingHeight > 0) {
+                        pdf.addPage();
+                        position -= pageHeight;
+                    }
+                }
+            } else {
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            }
+
             pdf.save(`${reportType.replace(/\s+/g, '_')}_Report.pdf`);
         } catch (err) {
             console.error("PDF Export failed", err);
@@ -135,12 +157,14 @@ export default function Reports() {
 
                 <div className="flex space-x-3">
                     <button
+                        type="button"
                         onClick={handlePrint}
                         className="flex items-center space-x-2 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium cursor-pointer">
                         <Printer size={16} />
                         <span>Print</span>
                     </button>
                     <button
+                        type="button"
                         onClick={handleExportPDF}
                         className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium cursor-pointer">
                         <Download size={16} />
