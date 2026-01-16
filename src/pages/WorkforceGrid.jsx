@@ -14,6 +14,36 @@ export default function WorkforceGrid() {
         return matchesSearch && matchesDept;
     });
 
+    const handleExportCSV = () => {
+        const headers = ['ID', 'Name', 'Department', 'Position', 'Status', 'Performance', 'Joined'];
+        const rows = filteredData.map(emp => [
+            emp.id,
+            emp.name,
+            emp.department,
+            emp.position,
+            emp.status,
+            emp.performance,
+            emp.startDate
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'workforce_export.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6">
@@ -41,7 +71,10 @@ export default function WorkforceGrid() {
                             ))}
                         </select>
 
-                        <button className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors">
+                        <button
+                            onClick={handleExportCSV}
+                            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                        >
                             <Download size={18} />
                             <span>Export</span>
                         </button>

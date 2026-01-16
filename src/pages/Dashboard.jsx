@@ -6,8 +6,12 @@ import { HeadcountTrend, DepartmentDistribution, DemographicsPie } from '../comp
 import { MOCK_DATA, DEPARTMENTS } from '../data/mockData';
 
 export default function Dashboard() {
+    const [timeframe, setTimeframe] = React.useState('Last 12 Months');
+
     const stats = useMemo(() => {
         const totalEmployees = MOCK_DATA.length;
+        // Simplified effect: If timeframe is 'YTD', slightly reduce counts to mock different data scope
+        const multiplier = timeframe === 'YTD' ? 0.8 : (timeframe === 'All Time' ? 1.5 : 1);
         const activeEmployees = MOCK_DATA.filter(e => e.status === 'Active' || e.status === 'On Leave');
         const terminatedEmployees = MOCK_DATA.filter(e => e.status === 'Terminated');
 
@@ -109,7 +113,11 @@ export default function Dashboard() {
                 <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-lg font-bold text-white">Headcount Growth</h2>
-                        <select className="bg-slate-900 border border-slate-700 text-slate-300 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <select
+                            value={timeframe}
+                            onChange={(e) => setTimeframe(e.target.value)}
+                            className="bg-slate-900 border border-slate-700 text-slate-300 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
                             <option>Last 12 Months</option>
                             <option>YTD</option>
                             <option>All Time</option>
