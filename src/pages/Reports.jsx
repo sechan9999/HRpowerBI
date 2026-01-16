@@ -6,12 +6,25 @@ import jsPDF from 'jspdf';
 
 export default function Reports() {
     const [reportType, setReportType] = useState('Executive Summary');
+    const [timeframe, setTimeframe] = useState('Last 30 Days');
     const reportRef = useRef(null);
 
     // Stats
     const activeCount = MOCK_DATA.filter(e => e.status === 'Active').length;
     const termCount = MOCK_DATA.filter(e => e.status === 'Terminated').length;
-    const newHires = MOCK_DATA.filter(e => e.startDate > '2023-01-01').length; // Mock simplified logic
+    // Dynamic calculation based on timeframe
+    const getStartDate = () => {
+        const now = new Date();
+        if (timeframe === 'Last 30 Days') return new Date(now.setDate(now.getDate() - 30));
+        if (timeframe === 'Last 3 Months') return new Date(now.setMonth(now.getMonth() - 3));
+        if (timeframe === 'Last 1 Year') return new Date(now.setFullYear(now.getFullYear() - 1));
+        return new Date('2020-01-01');
+    };
+
+    const startDate = getStartDate();
+    const newHires = MOCK_DATA.filter(e => new Date(e.startDate) >= startDate).length;
+    const recentTerms = MOCK_DATA.filter(e => e.endDate && new Date(e.endDate) >= startDate).length;
+    const retentionRate = activeCount > 0 ? ((1 - (recentTerms / activeCount)) * 100).toFixed(1) : 100;
 
     const handlePrint = () => {
         window.print();
@@ -58,67 +71,100 @@ export default function Reports() {
         }
     };
 
+    const ExecutiveOverview = () => (
+        <section>
+            <h2 className="text-lg font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-3">Executive Overview</h2>
+            <p className="text-slate-600 leading-relaxed">
+                This report provides a comprehensive analysis of workforce dynamics for the period of <span className="font-bold text-slate-900">{timeframe}</span>.
+                The organization maintains a total headcount of <span className="font-bold text-slate-900">{activeCount}</span> active employees.
+                During this period, we have onboarded <span className="font-bold text-slate-900">{newHires}</span> new team members while managing <span className="font-bold text-slate-900">{recentTerms}</span> departures.
+            </p>
+        </section>
+    );
+
+    const KeyPerformanceIndicators = () => (
+        <section>
+            <h2 className="text-lg font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-3">Key Performance Indicators</h2>
+            <div className="grid grid-cols-3 gap-6">
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                    <div className="text-slate-500 text-sm mb-1">Active Headcount</div>
+                    <div className="text-2xl font-bold text-blue-600">{activeCount}</div>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                    <div className="text-slate-500 text-sm mb-1">Terminations ({timeframe})</div>
+                    <div className="text-2xl font-bold text-slate-700">{recentTerms}</div>
+                    <div className="text-red-500 text-xs font-medium mt-1"> impacted by timeframe</div>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                    <div className="text-slate-500 text-sm mb-1">New Hires ({timeframe})</div>
+                    <div className="text-2xl font-bold text-slate-700">{newHires}</div>
+                    <div className="text-green-600 text-xs font-medium mt-1"> growth metric</div>
+                </div>
+            </div>
+        </section>
+    );
+
+    const HeadcountTable = () => (
+        <section>
+            <h2 className="text-lg font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-3">Headcount Breakdown</h2>
+            <table className="w-full text-left text-sm mt-4">
+                <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                        <th className="p-3">Department</th>
+                        <th className="p-3">Count</th>
+                        <th className="p-3">% of Total</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                    {DEPARTMENTS.map(dept => {
+                        const count = MOCK_DATA.filter(e => e.department === dept && e.status === 'Active').length;
+                        return (
+                            <tr key={dept} className="hover:bg-slate-50">
+                                <td className="p-3 font-medium text-slate-700">{dept}</td>
+                                <td className="p-3">{count}</td>
+                                <td className="p-3">{((count / activeCount) * 100).toFixed(1)}%</td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </section>
+    );
+
+    const WorkforceTrends = () => (
+        <section>
+            <h2 className="text-lg font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-3">Workforce Trends</h2>
+            <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2">
+                    <span className="text-slate-600 font-medium">Retention Rate ({timeframe})</span>
+                    <span className="text-xl font-bold text-slate-800">{retentionRate}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-slate-600 font-medium">New Hire Rate ({timeframe})</span>
+                    <span className="text-xl font-bold text-slate-800">{((newHires / activeCount) * 100).toFixed(1)}%</span>
+                </div>
+            </div>
+        </section>
+    );
+
     const renderContent = () => {
         if (reportType === 'Executive Summary') {
             return (
                 <>
-                    <section>
-                        <h2 className="text-lg font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-3">Executive Overview</h2>
-                        <p className="text-slate-600 leading-relaxed">
-                            This report provides a comprehensive analysis of the current workforce dynamics.
-                            As of today, the organization maintains a total headcount of <span className="font-bold text-slate-900">{activeCount}</span> active employees.
-                            Over the selected period, we have observed stable retention rates, with <span className="font-bold text-slate-900">{newHires}</span> new joiners onboarding successfully.
-                        </p>
-                    </section>
-
-                    <section>
-                        <h2 className="text-lg font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-3">Key Performance Indicators</h2>
-                        <div className="grid grid-cols-3 gap-6">
-                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                <div className="text-slate-500 text-sm mb-1">Active Headcount</div>
-                                <div className="text-2xl font-bold text-blue-600">{activeCount}</div>
-                                <div className="text-green-600 text-xs font-medium mt-1">↑ 2.4% vs last month</div>
-                            </div>
-                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                <div className="text-slate-500 text-sm mb-1">Total Terminations</div>
-                                <div className="text-2xl font-bold text-slate-700">{termCount}</div>
-                                <div className="text-red-500 text-xs font-medium mt-1">↑ 1.2% vs last month</div>
-                            </div>
-                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                <div className="text-slate-500 text-sm mb-1">New Hires (YTD)</div>
-                                <div className="text-2xl font-bold text-slate-700">{newHires}</div>
-                                <div className="text-slate-400 text-xs font-medium mt-1">Stable pipeline</div>
-                            </div>
-                        </div>
-                    </section>
+                    <ExecutiveOverview />
+                    <KeyPerformanceIndicators />
                 </>
             );
         } else if (reportType === 'Headcount Analysis') {
+            return <HeadcountTable />;
+        } else if (reportType === 'Full Report') {
             return (
-                <section>
-                    <h2 className="text-lg font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-3">Headcount Breakdown</h2>
-                    <table className="w-full text-left text-sm mt-4">
-                        <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
-                            <tr>
-                                <th className="p-3">Department</th>
-                                <th className="p-3">Count</th>
-                                <th className="p-3">% of Total</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {DEPARTMENTS.map(dept => {
-                                const count = MOCK_DATA.filter(e => e.department === dept && e.status === 'Active').length;
-                                return (
-                                    <tr key={dept} className="hover:bg-slate-50">
-                                        <td className="p-3 font-medium text-slate-700">{dept}</td>
-                                        <td className="p-3">{count}</td>
-                                        <td className="p-3">{((count / activeCount) * 100).toFixed(1)}%</td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </section>
+                <div className="space-y-8">
+                    <ExecutiveOverview />
+                    <KeyPerformanceIndicators />
+                    <HeadcountTable />
+                    <WorkforceTrends />
+                </div>
             );
         }
         return (
@@ -143,6 +189,7 @@ export default function Reports() {
                             className="bg-transparent text-white outline-none text-sm font-medium focus:ring-0 border-none cursor-pointer"
                         >
                             <option value="Executive Summary">Executive Summary</option>
+                            <option value="Full Report">Full Report</option>
                             <option value="Headcount Analysis">Headcount Analysis</option>
                             <option value="Turnover Report">Turnover Report</option>
                             <option value="Diversity Audit">Diversity Audit</option>
@@ -151,7 +198,15 @@ export default function Reports() {
 
                     <div className="flex items-center space-x-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2">
                         <Calendar className="text-slate-400" size={18} />
-                        <span className="text-sm text-slate-300">Last 30 Days</span>
+                        <select
+                            value={timeframe}
+                            onChange={(e) => setTimeframe(e.target.value)}
+                            className="bg-transparent text-slate-300 outline-none text-sm font-medium focus:ring-0 border-none cursor-pointer"
+                        >
+                            <option value="Last 30 Days">Last 30 Days</option>
+                            <option value="Last 3 Months">Last 3 Months</option>
+                            <option value="Last 1 Year">Last 1 Year</option>
+                        </select>
                     </div>
                 </div>
 
