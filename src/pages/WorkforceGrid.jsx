@@ -15,32 +15,56 @@ export default function WorkforceGrid() {
     });
 
     const handleExportCSV = () => {
-        const headers = ['ID', 'Name', 'Department', 'Position', 'Status', 'Performance', 'Joined'];
-        const rows = filteredData.map(emp => [
-            emp.id,
-            emp.name,
-            emp.department,
-            emp.position,
-            emp.status,
-            emp.performance,
-            emp.startDate
-        ]);
+        try {
+            if (filteredData.length === 0) {
+                alert("No data to export based on current filters.");
+                return;
+            }
 
-        const csvContent = [
-            headers.join(','),
-            ...rows.map(row => row.join(','))
-        ].join('\n');
+            const headers = ['ID', 'Name', 'Department', 'Position', 'Status', 'Performance', 'Joined'];
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        if (link.download !== undefined) {
+            // Helper to handle commas and quotes in CSV
+            const escapeCsv = (val) => {
+                if (val === null || val === undefined) return '';
+                const str = String(val);
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            };
+
+            const rows = filteredData.map(emp => [
+                emp.id,
+                emp.name,
+                emp.department,
+                emp.position,
+                emp.status,
+                emp.performance,
+                emp.startDate
+            ].map(escapeCsv));
+
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
+
             link.setAttribute('href', url);
-            link.setAttribute('download', 'workforce_export.csv');
-            link.style.visibility = 'hidden';
+            link.setAttribute('download', `hr_workforce_export_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.display = 'none';
+
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+
+            // Small delay to ensure download starts before revoking
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export data. Please try again.');
         }
     };
 
